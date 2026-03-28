@@ -1,0 +1,18 @@
+0 verbose cli /usr/local/bin/node /usr/local/lib/node_modules/npm/bin/npm-cli.js
+1 info using npm@10.9.4
+2 info using node@v22.21.0
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/Users/oliverweekley/Desktop/ScoutsQuatermaster/scouts-quartermaster/.npmrc
+5 silly config load:file:/Users/oliverweekley/Desktop/ScoutsQuatermaster/scouts-quartermaster/.prisma-home/.npmrc
+6 silly config load:file:/usr/local/etc/npmrc
+7 verbose title npm exec prisma migrate status
+8 verbose argv "exec" "--" "prisma" "migrate" "status"
+9 verbose logfile logs-max:10 dir:/Users/oliverweekley/Desktop/ScoutsQuatermaster/scouts-quartermaster/.prisma-home/.npm/_logs/2026-03-27T22_13_16_463Z-
+10 verbose logfile /Users/oliverweekley/Desktop/ScoutsQuatermaster/scouts-quartermaster/.prisma-home/.npm/_logs/2026-03-27T22_13_16_463Z-debug-0.log
+11 silly logfile done cleaning log files
+12 verbose cwd /Users/oliverweekley/Desktop/ScoutsQuatermaster/scouts-quartermaster
+13 verbose os Darwin 25.4.0
+14 verbose node v22.21.0
+15 verbose npm  v10.9.4
+16 verbose exit 1
+17 verbose code 1

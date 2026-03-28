@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+:root {
+  /* OSM-style palette (not identical / no branding) */
+  --background: #ffffff;
+  --foreground: #0f172a;
+
+  --card: #ffffff;
+  --muted: #64748b;
+  --border: #d8d8e6;
+
+  /* Primary */
+  --primary: #2f6fed;
+  --primary-foreground: #ffffff;
+  --primary-soft: #e8efff;
+
+  /* Shell (requested NAV purple: rgb(89,23,133)) */
+  --shell: rgb(89, 23, 133);
+  --shell-foreground: #ffffff;
+  --shell-muted: #dccfed;
+  --shell-active: rgb(76, 17, 116);
+
+  /* Top bar */
+  --topbar: #f3f0f7;
+  --topbar-foreground: #1f2937;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+    "Courier New", monospace;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-shell: var(--shell);
+  --color-shell-foreground: var(--shell-foreground);
+  --color-shell-muted: var(--shell-muted);
+  --color-shell-active: var(--shell-active);
+  --color-topbar: var(--topbar);
+  --color-topbar-foreground: var(--topbar-foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+}
+
+/* Force a light UI (leaders often use mixed OS themes; avoid unreadable "white-on-white"). */
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

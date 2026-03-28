@@ -1,0 +1,58 @@
+{
+  "name": "scouts-quartermaster",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "vercel-build": "prisma migrate deploy && next build",
+    "start": "next start",
+    "lint": "eslint",
+    "postinstall": "prisma generate",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:init": "prisma migrate dev --name init --skip-seed",
+    "db:studio": "prisma studio",
+    "db:seed": "prisma db seed",
+    "dev:bootstrap": "node scripts/dev-bootstrap.mjs",
+    "dev:db": "docker compose up -d db",
+    "dev:setup": "npm run dev:bootstrap && npm run dev:db && npm run db:migrate:init && npm run db:seed"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1018.0",
+    "@aws-sdk/s3-request-presigner": "^3.1018.0",
+    "@hookform/resolvers": "^5.2.2",
+    "@prisma/client": "^6.19.2",
+    "@types/nodemailer": "^7.0.11",
+    "@zxing/browser": "^0.1.5",
+    "bcryptjs": "^3.0.3",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.1.0",
+    "jose": "^6.2.2",
+    "lucide-react": "^1.7.0",
+    "nanoid": "^5.1.7",
+    "next": "16.2.1",
+    "nodemailer": "^8.0.4",
+    "prisma": "^6.19.2",
+    "qrcode": "^1.5.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-hook-form": "^7.72.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.1",
+    "tailwindcss": "^4",
+    "tsx": "^4.21.0",
+    "typescript": "^5"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}

@@ -1,0 +1,519 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  QUARTERMASTER
+  LEADER
+  READONLY
+}
+
+enum EquipmentStatus {
+  AVAILABLE
+  CHECKED_OUT
+  MAINTENANCE
+  RETIRED
+}
+
+enum EquipmentCondition {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+  DAMAGED
+  OUT_OF_SERVICE
+}
+
+enum CustomFieldType {
+  TEXT
+  TEXTAREA
+  NUMBER
+  DATE
+  BOOLEAN
+  SELECT
+}
+
+enum AttachmentKind {
+  PHOTO
+  DOCUMENT
+  MANUAL
+  WARRANTY
+  RISK_ASSESSMENT
+}
+
+enum AttachmentStatus {
+  PENDING
+  READY
+}
+
+enum CheckoutStatus {
+  OPEN
+  CLOSED
+}
+
+enum MaintenanceStatus {
+  OPEN
+  IN_PROGRESS
+  DONE
+  CANCELED
+}
+
+enum MaintenancePriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum AuditAction {
+  USER_CREATED
+  USER_UPDATED
+  EQUIPMENT_CREATED
+  EQUIPMENT_UPDATED
+  EQUIPMENT_RETIRED
+  EQUIPMENT_TYPE_UPDATED
+  CHECKOUT_CREATED
+  CHECKOUT_RETURNED
+  CONDITION_UPDATED
+  MAINTENANCE_CREATED
+  MAINTENANCE_UPDATED
+  MAINTENANCE_SCHEDULE_CREATED
+  MAINTENANCE_SCHEDULE_UPDATED
+  MAINTENANCE_SCHEDULE_RUN
+  CSV_EXPORT
+  CSV_IMPORT
+  ATTACHMENT_ADDED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  role         Role     @default(LEADER)
+  passwordHash String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions              Session[]
+  equipmentCreated      Equipment[]        @relation("equipmentCreated")
+  equipmentUpdated      Equipment[]        @relation("equipmentUpdated")
+  attachmentsCreated    Attachment[]
+  checkoutsCreated      Checkout[]         @relation("checkoutCreated")
+  checkoutsBorrowed     Checkout[]         @relation("checkoutBorrower")
+  maintenanceCreated    MaintenanceIssue[] @relation("maintenanceCreated")
+  maintenanceAssigned   MaintenanceIssue[] @relation("maintenanceAssigned")
+  maintenanceLogs       MaintenanceLog[]
+  maintenanceSchedulesCreated MaintenanceSchedule[] @relation("maintenanceScheduleCreated")
+  auditLogs             AuditLog[]
+  checkoutItemReturns   CheckoutItem[]     @relation("checkoutItemReturnedBy")
+  equipmentFieldUpdates EquipmentCustomFieldValue[] @relation("equipmentFieldUpdatedBy")
+  checkoutBundlesCreated CheckoutBundle[]
+}
+
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  lastUsedAt DateTime @default(now())
+  ip         String?
+  userAgent  String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Member {
+  id        String       @id @default(cuid())
+  name      String
+  sectionId String
+  isActive  Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  section  Section @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  checkouts Checkout[]
+
+  @@index([sectionId])
+  @@index([isActive])
+}
+
+model Section {
+  id         String     @id @default(cuid())
+  name       String
+  meetingDay DayOfWeek?
+  isActive   Boolean    @default(true)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  members  Member[]
+  checkouts Checkout[]
+
+  @@unique([name, meetingDay])
+  @@index([name])
+  @@index([meetingDay])
+  @@index([isActive])
+}
+
+model Location {
+  id        String    @id @default(cuid())
+  name      String
+  notes     String?
+  parentId  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  parent   Location?  @relation("locationTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Location[] @relation("locationTree")
+
+  equipment Equipment[]
+  attachments Attachment[]
+  hotspots    LocationHotspot[]
+  hotspotTargets LocationHotspot[] @relation("hotspotTarget")
+
+  @@unique([parentId, name])
+  @@index([parentId])
+}
+
+model EquipmentCategory {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  parentId    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  parent   EquipmentCategory?  @relation("categoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children EquipmentCategory[] @relation("categoryTree")
+
+  equipment Equipment[]
+
+  @@unique([parentId, name])
+  @@index([parentId])
+}
+
+model EquipmentType {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  requiredDocs Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  fields    CustomFieldDefinition[]
+  equipment Equipment[]
+}
+
+model CustomFieldDefinition {
+  id              String         @id @default(cuid())
+  equipmentTypeId String
+  key             String
+  label           String
+  fieldType       CustomFieldType
+  required        Boolean        @default(false)
+  options         Json?
+  sortOrder       Int            @default(0)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  equipmentType EquipmentType @relation(fields: [equipmentTypeId], references: [id], onDelete: Cascade)
+  values        EquipmentCustomFieldValue[]
+
+  @@unique([equipmentTypeId, key])
+  @@index([equipmentTypeId])
+}
+
+model Equipment {
+  id              String             @id @default(cuid())
+  name            String
+  assetId         String             @unique
+  qrValue         String             @unique
+  description     String?
+  categoryId      String?
+  typeId          String?
+  quantity        Int                @default(1)
+  isConsumable    Boolean            @default(false)
+  minStock        Int?
+  serialNumber    String?
+  status          EquipmentStatus    @default(AVAILABLE)
+  condition       EquipmentCondition @default(GOOD)
+  purchaseDate    DateTime?
+  warrantyExpiry  DateTime?
+  value           Decimal?           @db.Decimal(12, 2)
+  notes           String?
+  locationId      String?
+  assignedSection String?
+  isActive        Boolean            @default(true)
+  retiredAt       DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  createdById     String?
+  updatedById     String?
+
+  category EquipmentCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  type     EquipmentType?     @relation(fields: [typeId], references: [id], onDelete: SetNull)
+  location Location?          @relation(fields: [locationId], references: [id], onDelete: SetNull)
+
+  createdBy User? @relation("equipmentCreated", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy User? @relation("equipmentUpdated", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  customFieldValues EquipmentCustomFieldValue[]
+  attachments       Attachment[]
+  checkoutItems     CheckoutItem[]
+  checkoutBundleItems CheckoutBundleItem[]
+  maintenanceIssues MaintenanceIssue[]
+  maintenanceSchedules MaintenanceSchedule[]
+
+  @@index([categoryId])
+  @@index([typeId])
+  @@index([locationId])
+  @@index([status])
+  @@index([condition])
+  @@index([isActive])
+  @@index([isConsumable])
+}
+
+model EquipmentCustomFieldValue {
+  id                String   @id @default(cuid())
+  equipmentId       String
+  fieldDefinitionId String
+  valueJson         Json
+  updatedAt         DateTime @updatedAt
+  updatedById       String?
+
+  equipment       Equipment             @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  fieldDefinition CustomFieldDefinition @relation(fields: [fieldDefinitionId], references: [id], onDelete: Cascade)
+  updatedBy       User?                 @relation("equipmentFieldUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+
+  @@unique([equipmentId, fieldDefinitionId])
+  @@index([equipmentId])
+  @@index([fieldDefinitionId])
+}
+
+model Attachment {
+  id          String           @id @default(cuid())
+  equipmentId String?
+  locationId  String?
+  kind        AttachmentKind
+  status      AttachmentStatus @default(PENDING)
+  filename    String
+  mimeType    String
+  size        Int
+  storageKey  String           @unique
+  createdById String?
+  createdAt   DateTime         @default(now())
+  completedAt DateTime?
+
+  equipment Equipment? @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  location  Location?  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  createdBy User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([equipmentId])
+  @@index([locationId])
+  @@index([kind])
+  @@index([status])
+}
+
+model LocationHotspot {
+  id              String   @id @default(cuid())
+  locationId      String
+  label           String
+  x               Float
+  y               Float
+  w               Float
+  h               Float
+  targetLocationId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  targetLocation Location? @relation("hotspotTarget", fields: [targetLocationId], references: [id], onDelete: SetNull)
+
+  @@index([locationId])
+  @@index([targetLocationId])
+}
+
+model Checkout {
+  id               String         @id @default(cuid())
+  status           CheckoutStatus @default(OPEN)
+  checkedOutById   String
+  borrowerUserId   String?
+  borrowerMemberId String?
+  borrowerName     String
+  borrowerSectionId String?
+  checkedOutAt     DateTime       @default(now())
+  expectedReturnAt DateTime?
+  notes            String?
+  closedAt         DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  checkedOutBy User  @relation("checkoutCreated", fields: [checkedOutById], references: [id], onDelete: Restrict)
+  borrower    User? @relation("checkoutBorrower", fields: [borrowerUserId], references: [id], onDelete: SetNull)
+  member      Member? @relation(fields: [borrowerMemberId], references: [id], onDelete: SetNull)
+  section     Section? @relation(fields: [borrowerSectionId], references: [id], onDelete: SetNull)
+  items       CheckoutItem[]
+
+  @@index([status])
+  @@index([checkedOutById])
+  @@index([borrowerUserId])
+  @@index([borrowerMemberId])
+  @@index([borrowerSectionId])
+  @@index([expectedReturnAt])
+}
+
+model CheckoutItem {
+  id                 String             @id @default(cuid())
+  checkoutId         String
+  equipmentId        String
+  quantity           Int                @default(1)
+  returnedAt         DateTime?
+  returnCondition    EquipmentCondition?
+  returnNotes        String?
+  returnedById       String?
+  conditionUpdatedAt DateTime?
+
+  checkout   Checkout  @relation(fields: [checkoutId], references: [id], onDelete: Cascade)
+  equipment  Equipment @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
+  returnedBy User?     @relation("checkoutItemReturnedBy", fields: [returnedById], references: [id], onDelete: SetNull)
+
+  @@index([checkoutId])
+  @@index([equipmentId])
+  @@index([returnedAt])
+}
+
+model CheckoutBundle {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?
+
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  items     CheckoutBundleItem[]
+
+  @@index([isActive])
+}
+
+model CheckoutBundleItem {
+  id          String @id @default(cuid())
+  bundleId    String
+  equipmentId String
+  quantity    Int    @default(1)
+  sortOrder   Int    @default(0)
+
+  bundle    CheckoutBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  equipment Equipment      @relation(fields: [equipmentId], references: [id], onDelete: Restrict)
+
+  @@unique([bundleId, equipmentId])
+  @@index([bundleId])
+  @@index([equipmentId])
+}
+
+model MaintenanceSchedule {
+  id            String              @id @default(cuid())
+  equipmentId   String
+  title         String
+  description   String?
+  priority      MaintenancePriority @default(MEDIUM)
+  intervalMonths Int               @default(1)
+  nextDueAt     DateTime
+  lastDoneAt    DateTime?
+  isActive      Boolean             @default(true)
+  activeIssueId String?             @unique
+  createdById   String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  equipment   Equipment        @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  activeIssue MaintenanceIssue? @relation("scheduleActiveIssue", fields: [activeIssueId], references: [id], onDelete: SetNull)
+  createdBy   User?            @relation("maintenanceScheduleCreated", fields: [createdById], references: [id], onDelete: SetNull)
+  issues      MaintenanceIssue[] @relation("scheduleIssues")
+
+  @@index([equipmentId])
+  @@index([nextDueAt])
+  @@index([isActive])
+  @@index([intervalMonths])
+}
+
+model MaintenanceIssue {
+  id           String              @id @default(cuid())
+  equipmentId  String
+  title        String
+  description  String?
+  status       MaintenanceStatus   @default(OPEN)
+  priority     MaintenancePriority @default(MEDIUM)
+  dueAt        DateTime?
+  scheduleId   String?
+  assignedToId String?
+  createdById  String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  resolvedAt   DateTime?
+
+  equipment  Equipment @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  schedule   MaintenanceSchedule? @relation("scheduleIssues", fields: [scheduleId], references: [id], onDelete: SetNull)
+  activeForSchedule MaintenanceSchedule? @relation("scheduleActiveIssue")
+  assignedTo User?     @relation("maintenanceAssigned", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdBy  User?     @relation("maintenanceCreated", fields: [createdById], references: [id], onDelete: SetNull)
+  logs       MaintenanceLog[]
+
+  @@index([equipmentId])
+  @@index([status])
+  @@index([priority])
+  @@index([dueAt])
+  @@index([scheduleId])
+  @@index([assignedToId])
+}
+
+model MaintenanceLog {
+  id          String   @id @default(cuid())
+  issueId     String
+  message     String
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  issue     MaintenanceIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  createdBy User?           @relation(fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([issueId])
+}
+
+model AuditLog {
+  id         String      @id @default(cuid())
+  action     AuditAction
+  entityType String
+  entityId   String
+  actorId    String?
+  summary    String?
+  data       Json?
+  createdAt  DateTime    @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([createdAt])
+}

@@ -1,0 +1,25 @@
+{
+  "name": "Scout Quartermaster",
+  "short_name": "Quartermaster",
+  "description": "Equipment and quartermaster management for Scout groups",
+  "start_url": "/home",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2f6fed",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
+
